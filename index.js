@@ -1,5 +1,6 @@
 'use strict';
 
+var path = require('path');
 var es = require('event-stream');
 var reduce = require('stream-reduce');
 var toposort = require('toposort');
@@ -11,7 +12,11 @@ module.exports = function (options, done) {
 		options = {};
 	}
 
-	var pkg = module.parent.require('./package.json');
+	var pkgFile;
+	var pkg;
+
+	pkgFile = findPackageJson(path.dirname(module.parent.filename));
+	pkg = require(pkgFile);
 	var override = pkg['browser-overrides'] || {};
 	var env = options.env;
 
@@ -23,11 +28,28 @@ module.exports = function (options, done) {
 			done(err);
 		})
 		.pipe(es.map(readBowerDeps))
+		.on('error', function (err) {
+			done(err);
+		})
 		.pipe(es.map(resolveDeps))
 		.pipe(reduce(buildDependencyGraph, {nodes: [], edges: []}))
 		.pipe(es.through(function (graph) {
 			done(null, toposort.array(graph.nodes, graph.edges).reverse());
 		}));
+
+	// Walk up the directory path to find the nearest package.json
+	function findPackageJson(startDir) {
+		var dirs = startDir.split(path.sep);
+		while (dirs.length > 0) {
+			try {
+				return require.resolve(path.sep + path.join.apply(path, dirs.concat('package.json')));
+			}
+			catch (e) {
+				dirs.pop();
+			}
+		}
+		throw new Error('Couldn\'t find package.json in or above ' + startDir);
+	}
 
 	// Translate bare module id into container object
 	function wrapModuleId(id, cb) {
@@ -56,7 +78,7 @@ module.exports = function (options, done) {
 	// Defer to browser-resolve to find shim/default entry points
 	function findEntryPoint(mod, cb) {
 		// If an override is set, resolve it from the parent module. Otherwise, resolve the
-		bresolve(mod.main || mod.id, {filename: module.parent.filename}, function (err, path) {
+		bresolve(mod.main || mod.id, {filename: pkgFile}, function (err, path) {
 			if (err) {
 				cb(err);
 			}
@@ -71,15 +93,17 @@ module.exports = function (options, done) {
 		if (mod.deps.length > 0) {
 			return cb(null, mod);
 		}
-		bresolve('./bower.json', {filename: mod.main}, function (err, path) {
-			if (path) {
-				var bower = require(path);
-				Object.keys(bower.dependencies || {}).forEach(function (dep) {
-					mod.deps.push(dep);
-				});
-			}
-			cb(null, mod);
-		});
+		try {
+			var modRootDir = path.dirname(findPackageJson(path.dirname(mod.main)));
+			var bower = require(path.join(modRootDir, 'bower.json'));
+			Object.keys(bower.dependencies || {}).forEach(function (dep) {
+				mod.deps.push(dep);
+			});
+		}
+		catch (e) {
+			// No bower.json
+		}
+		cb(null, mod);
 	}
 
 	// Resolve dependency references gathered from bower and manual overrides against invoking module
@@ -87,7 +111,7 @@ module.exports = function (options, done) {
 		var deps = mod.deps.splice(0);
 		(function next() {
 			var depId = deps.shift();
-			bresolve(depId, {filename: module.parent.filename}, function (err, path) {
+			bresolve(depId, {filename: pkgFile}, function (err, path) {
 				if (path) {
 					mod.deps.push(path);
 				}

@@ -70,7 +70,7 @@ describe('browser-deps', function () {
 
 	it('should work when invoked from a sub-directory of the calling module', function (done) {
 		activateFixture('simple');
-		require('./fixture').fromSubdir(function (err, libraries) {
+		require('./fixture/subdir/subdir')(function (err, libraries) {
 			expect(libraries).to.have.members([
 				path.join(__dirname, 'fixture/node_modules/simple/index.js')
 			]);
@@ -174,7 +174,7 @@ describe('browser-deps', function () {
 		// indeterminate... maybe this is close enough.
 		runFixture('bower-deps', expectSuccess(function (libraries) {
 			expect(libraries[0]).to.equal(path.join(__dirname, 'fixture/node_modules/simple/index.js'));
-			expect(libraries[1]).to.equal(path.join(__dirname, 'fixture/node_modules/bower-deps/index.js'));
+			expect(libraries[1]).to.equal(path.join(__dirname, 'fixture/node_modules/bower-deps/dist/index.js'));
 		}), done);
 	});
 
@@ -199,7 +199,7 @@ describe('browser-deps', function () {
 	it('should override bower deps with explicitly defined deps', function (done) {
 		runFixture('overrides-deps', expectSuccess(function (libraries) {
 			expect(libraries[0]).to.equal(path.join(__dirname, 'fixture/node_modules/explicit-main/not-index.js'));
-			expect(libraries[1]).to.equal(path.join(__dirname, 'fixture/node_modules/bower-deps/index.js'));
+			expect(libraries[1]).to.equal(path.join(__dirname, 'fixture/node_modules/bower-deps/dist/index.js'));
 			expect(libraries[2]).to.equal(path.join(__dirname, 'fixture/node_modules/simple/index.js'));
 		}), done);
 	});
