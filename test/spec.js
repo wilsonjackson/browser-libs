@@ -68,6 +68,16 @@ describe('browser-deps', function () {
 		}), done);
 	});
 
+	it('should work when invoked from a sub-directory of the calling module', function (done) {
+		activateFixture('simple');
+		require('./fixture').fromSubdir(function (err, libraries) {
+			expect(libraries).to.have.members([
+				path.join(__dirname, 'fixture/node_modules/simple/index.js')
+			]);
+			done();
+		});
+	});
+
 	it('should resolve explicit module entry points', function (done) {
 		runFixture('explicit-main', expectSuccess(function (libraries) {
 			expect(libraries).to.have.members([

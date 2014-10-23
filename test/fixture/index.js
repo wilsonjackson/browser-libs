@@ -2,6 +2,12 @@
 
 var bdeps = require('../../');
 
-module.exports = function () {
+var invokeModule = function () {
 	return bdeps.apply(null, arguments);
 };
+
+invokeModule.fromSubdir = function () {
+	return require('./subdir/subdir').apply(null, arguments);
+};
+
+module.exports = invokeModule;
