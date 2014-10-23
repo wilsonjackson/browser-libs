@@ -7,6 +7,10 @@
     "test": "mocha",
     "cover": "istanbul cover node_modules/.bin/_mocha -- -u exports -R spec"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wilsonjackson/browser-libs.git"
+  },
   "keywords": [
     "browser",
     "client-side",
@@ -17,6 +21,9 @@
   ],
   "author": "Majid Burney <moocow@euphoricsoup.com>",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wilsonjackson/browser-libs/issues"
+  },
   "dependencies": {
     "browser-resolve": "^1.3.2",
     "event-stream": "^3.1.7",
