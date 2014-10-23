@@ -1,0 +1,17 @@
+{
+	"name": "fixture",
+	"version": "1.0.0",
+	"dependencies": {
+		"bower-deps": "1.0.0",
+		"simple": "1.0.0",
+		"explicit-main": "1.0.0"
+	},
+	"browser-overrides": {
+		"simple": {
+			"deps": ["bower-deps", "explicit-main"]
+		},
+		"bower-deps": {
+			"deps": ["explicit-main"]
+		}
+	}
+}

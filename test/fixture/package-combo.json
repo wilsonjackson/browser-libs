@@ -1,0 +1,9 @@
+{
+	"name": "fixture",
+	"version": "1.0.0",
+	"dependencies": {
+		"simple": "1.0.0",
+		"explicit-main": "1.0.0",
+		"browser": "1.0.0"
+	}
+}
