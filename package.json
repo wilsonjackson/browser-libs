@@ -1,6 +1,6 @@
 {
   "name": "browser-libs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Find and fine-tune your client-side library dependencies",
   "main": "index.js",
   "scripts": {
