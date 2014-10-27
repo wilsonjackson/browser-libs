@@ -6,12 +6,14 @@ var reduce = require('stream-reduce');
 var toposort = require('toposort');
 var bresolve = require('browser-resolve');
 
-module.exports = function (options, done) {
+function blibs(options, done) {
 	if ('function' === typeof options) {
 		done = options;
 		options = {};
 	}
+	options = options || {};
 
+	var async = 'function' === typeof done;
 	var pkgFile;
 	var pkg;
 
@@ -20,22 +22,35 @@ module.exports = function (options, done) {
 	var override = pkg['browser-overrides'] || {};
 	var env = options.env;
 
-	es.readArray(Object.keys(pkg.dependencies))
-		.pipe(es.map(wrapModuleId))
-		.pipe(es.map(readParentOverride))
-		.pipe(es.map(findEntryPoint))
-		.on('error', function (err) {
-			done(err);
-		})
-		.pipe(es.map(readBowerDeps))
-		.on('error', function (err) {
-			done(err);
-		})
-		.pipe(es.map(resolveDeps))
-		.pipe(reduce(buildDependencyGraph, {nodes: [], edges: []}))
-		.pipe(es.through(function (graph) {
-			done(null, toposort.array(graph.nodes, graph.edges).reverse());
-		}));
+	if (async) {
+		es.readArray(Object.keys(pkg.dependencies))
+			.pipe(es.mapSync(wrapModuleId))
+			.pipe(es.mapSync(readParentOverride))
+			.pipe(es.map(findEntryPointAsync))
+			.on('error', function (err) {
+				done(err);
+			})
+			.pipe(es.mapSync(readBowerDeps))
+			.on('error', function (err) {
+				done(err);
+			})
+			.pipe(es.map(resolveDepsAsync))
+			.pipe(reduce(buildDependencyGraph, {nodes: [], edges: []}))
+			.pipe(es.through(function (graph) {
+				done(null, toposort.array(graph.nodes, graph.edges).reverse());
+			}));
+	}
+	else {
+		var graph = Object.keys(pkg.dependencies)
+			.map(wrapModuleId)
+			.map(readParentOverride)
+			.filter(Boolean)
+			.map(findEntryPointSync)
+			.map(readBowerDeps)
+			.map(resolveDepsSync)
+			.reduce(buildDependencyGraph, {nodes: [], edges: []});
+		return toposort.array(graph.nodes, graph.edges).reverse();
+	}
 
 	// Walk up the directory path to find the nearest package.json
 	function findPackageJson(startDir) {
@@ -52,12 +67,12 @@ module.exports = function (options, done) {
 	}
 
 	// Translate bare module id into container object
-	function wrapModuleId(id, cb) {
-		cb(null, {id: id, deps: []});
+	function wrapModuleId(id) {
+		return {id: id, deps: []};
 	}
 
 	// Read package.json of parent module to find shim overrides
-	function readParentOverride(mod, cb) {
+	function readParentOverride(mod) {
 		mod.override = override[mod.id];
 		mod.main = 'object' === typeof mod.override ? mod.override.main : mod.override;
 		mod.deps = mod.deps.concat(mod.override && mod.override.deps || []);
@@ -69,14 +84,14 @@ module.exports = function (options, done) {
 
 		// explicit false value excludes a module
 		if (mod.main === false) {
-			return cb();
+			return undefined;
 		}
 
-		cb(null, mod);
+		return mod;
 	}
 
 	// Defer to browser-resolve to find shim/default entry points
-	function findEntryPoint(mod, cb) {
+	function findEntryPointAsync(mod, cb) {
 		// If an override is set, resolve it from the parent module. Otherwise, resolve the
 		bresolve(mod.main || mod.id, {filename: pkgFile}, function (err, path) {
 			if (err) {
@@ -87,11 +102,18 @@ module.exports = function (options, done) {
 		});
 	}
 
+	// Defer to browser-resolve to find shim/default entry points
+	function findEntryPointSync(mod) {
+		// If an override is set, resolve it from the parent module. Otherwise, resolve the
+		mod.main = bresolve.sync(mod.main || mod.id, {filename: pkgFile});
+		return mod;
+	}
+
 	// Funnel dependencies out of bower config, if available
-	function readBowerDeps(mod, cb) {
+	function readBowerDeps(mod) {
 		// Skip module with overridden deps
 		if (mod.deps.length > 0) {
-			return cb(null, mod);
+			return mod;
 		}
 		try {
 			var modRootDir = path.dirname(findPackageJson(path.dirname(mod.main)));
@@ -103,11 +125,11 @@ module.exports = function (options, done) {
 		catch (e) {
 			// No bower.json
 		}
-		cb(null, mod);
+		return mod;
 	}
 
 	// Resolve dependency references gathered from bower and manual overrides against invoking module
-	function resolveDeps(mod, cb) {
+	function resolveDepsAsync(mod, cb) {
 		var deps = mod.deps.splice(0);
 		(function next() {
 			var depId = deps.shift();
@@ -120,6 +142,19 @@ module.exports = function (options, done) {
 		})();
 	}
 
+	// Resolve dependency references gathered from bower and manual overrides against invoking module
+	function resolveDepsSync(mod) {
+		var deps = mod.deps.splice(0);
+		var depId;
+		while ((depId = deps.shift())) {
+			var path = bresolve.sync(depId, {filename: pkgFile});
+			if (path) {
+				mod.deps.push(path);
+			}
+		}
+		return mod;
+	}
+
 	// Turn array of dependencies into nodes and edges for a dependency sort
 	function buildDependencyGraph(graph, mod) {
 		graph.nodes.push(mod.main);
@@ -128,4 +163,14 @@ module.exports = function (options, done) {
 		});
 		return graph;
 	}
+}
+
+// async api
+module.exports = function (options, done) {
+	blibs(options, done);
+};
+
+// sync api
+module.exports.sync = function (options) {
+	return blibs(options);
 };

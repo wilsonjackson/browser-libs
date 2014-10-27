@@ -2,6 +2,10 @@
 
 var bdeps = require('../../');
 
-module.exports = function () {
+module.exports.async = function () {
 	return bdeps.apply(null, arguments);
+};
+
+module.exports.sync = function () {
+	return bdeps.sync.apply(null, arguments);
 };
