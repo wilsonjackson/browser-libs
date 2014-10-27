@@ -205,6 +205,15 @@ describe('browser-deps', function () {
 				expect(libraries[2]).to.equal(path.join(__dirname, 'fixture/node_modules/simple/index.js'));
 			}), done);
 		});
+
+		// Addresses a bug wherein an overridden 'main' was not being properly used to resolve dependencies
+		it('should honor overridden main for dependency mappings', function (done) {
+			runFixture('depends-on-override', expectSuccess(function (libraries) {
+				expect(libraries[-1]).to.be.undefined; // jshint ignore:line
+				expect(libraries[0]).to.equal(path.join(__dirname, 'fixture/node_modules/simple/simple-overridden.js'));
+				expect(libraries[1]).to.equal(path.join(__dirname, 'fixture/node_modules/explicit-main/not-index.js'));
+			}), done);
+		});
 	});
 
 	describe('sync api', function () {
@@ -348,6 +357,14 @@ describe('browser-deps', function () {
 			expect(libraries[0]).to.equal(path.join(__dirname, 'fixture/node_modules/explicit-main/not-index.js'));
 			expect(libraries[1]).to.equal(path.join(__dirname, 'fixture/node_modules/bower-deps/dist/index.js'));
 			expect(libraries[2]).to.equal(path.join(__dirname, 'fixture/node_modules/simple/index.js'));
+		});
+
+		// Addresses a bug wherein an overridden 'main' was not being properly used to resolve dependencies
+		it('should honor overridden main for dependency mappings', function () {
+			var libraries = runFixture('depends-on-override');
+			expect(libraries[-1]).to.be.undefined; // jshint ignore:line
+			expect(libraries[0]).to.equal(path.join(__dirname, 'fixture/node_modules/simple/simple-overridden.js'));
+			expect(libraries[1]).to.equal(path.join(__dirname, 'fixture/node_modules/explicit-main/not-index.js'));
 		});
 	});
 });

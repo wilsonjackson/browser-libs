@@ -16,6 +16,7 @@ function blibs(options, done) {
 	var async = 'function' === typeof done;
 	var pkgFile;
 	var pkg;
+	var cache = {};
 
 	pkgFile = findPackageJson(path.dirname(module.parent.filename));
 	pkg = require(pkgFile);
@@ -24,9 +25,7 @@ function blibs(options, done) {
 
 	if (async) {
 		es.readArray(Object.keys(pkg.dependencies))
-			.pipe(es.mapSync(wrapModuleId))
-			.pipe(es.mapSync(readParentOverride))
-			.pipe(es.map(findEntryPointAsync))
+			.pipe(es.map(resolveModuleAsync))
 			.on('error', function (err) {
 				done(err);
 			})
@@ -42,10 +41,8 @@ function blibs(options, done) {
 	}
 	else {
 		var graph = Object.keys(pkg.dependencies)
-			.map(wrapModuleId)
-			.map(readParentOverride)
+			.map(resolveModuleSync)
 			.filter(Boolean)
-			.map(findEntryPointSync)
 			.map(readBowerDeps)
 			.map(resolveDepsSync)
 			.reduce(buildDependencyGraph, {nodes: [], edges: []});
@@ -66,13 +63,39 @@ function blibs(options, done) {
 		throw new Error('Couldn\'t find package.json in or above ' + startDir);
 	}
 
-	// Translate bare module id into container object
-	function wrapModuleId(id) {
-		return {id: id, deps: []};
+	// Transform module id into module object containing fully resolved main path and unresolved deps
+	function resolveModuleAsync(id, cb) {
+		if (cache[id]) {
+			return cb(null, cache[id]);
+		}
+		var mod = readParentOverride(id);
+		if (!mod) {
+			return cb();
+		}
+		findEntryPointAsync(mod, function (err, mod) {
+			if (!err) {
+				cache[id] = mod;
+			}
+			cb(err, mod);
+		});
+	}
+
+	// Transform module id into module object containing fully resolved main path and unresolved deps
+	function resolveModuleSync(id) {
+		if (cache[id]) {
+			return cache[id];
+		}
+		var mod = readParentOverride(id);
+		if (mod) {
+			mod = findEntryPointSync(mod);
+			cache[id] = mod;
+		}
+		return mod;
 	}
 
 	// Read package.json of parent module to find shim overrides
-	function readParentOverride(mod) {
+	function readParentOverride(id) {
+		var mod = {id: id, deps: []};
 		mod.override = override[mod.id];
 		mod.main = 'object' === typeof mod.override ? mod.override.main : mod.override;
 		mod.deps = mod.deps.concat(mod.override && mod.override.deps || []);
@@ -132,12 +155,14 @@ function blibs(options, done) {
 	function resolveDepsAsync(mod, cb) {
 		var deps = mod.deps.splice(0);
 		(function next() {
-			var depId = deps.shift();
-			bresolve(depId, {filename: pkgFile}, function (err, path) {
-				if (path) {
-					mod.deps.push(path);
+			if (deps.length === 0) {
+				return cb(null, mod);
+			}
+			resolveModuleAsync(deps.shift(), function (err, dep) {
+				if (dep && dep.main) {
+					mod.deps.push(dep.main);
 				}
-				return deps.length > 0 ? next() : cb(null, mod);
+				next();
 			});
 		})();
 	}
@@ -147,9 +172,9 @@ function blibs(options, done) {
 		var deps = mod.deps.splice(0);
 		var depId;
 		while ((depId = deps.shift())) {
-			var path = bresolve.sync(depId, {filename: pkgFile});
-			if (path) {
-				mod.deps.push(path);
+			var dep = resolveModuleSync(depId);
+			if (dep && dep.main) {
+				mod.deps.push(dep.main);
 			}
 		}
 		return mod;
