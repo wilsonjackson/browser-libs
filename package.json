@@ -1,6 +1,6 @@
 {
   "name": "browser-libs",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Find and fine-tune your client-side library dependencies",
   "main": "index.js",
   "scripts": {
@@ -25,10 +25,10 @@
     "url": "https://github.com/wilsonjackson/browser-libs/issues"
   },
   "dependencies": {
-    "browser-resolve": "^1.4.0",
-    "event-stream": "^3.1.7",
-    "stream-reduce": "^1.0.3",
-    "toposort": "^0.2.10"
+    "browser-resolve": "1.4.0",
+    "event-stream": "3.1.7",
+    "stream-reduce": "1.0.3",
+    "toposort": "0.2.10"
   },
   "devDependencies": {
     "chai": "^1.9.2",
