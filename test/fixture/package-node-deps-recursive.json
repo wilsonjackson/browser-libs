@@ -1,0 +1,7 @@
+{
+	"name": "fixture",
+	"version": "1.0.0",
+	"dependencies": {
+		"node-deps-recursive": "1.0.0"
+	}
+}

@@ -26,15 +26,12 @@
   },
   "dependencies": {
     "browser-resolve": "1.4.0",
-    "event-stream": "3.1.7",
-    "stream-reduce": "1.0.3",
     "toposort": "0.2.10"
   },
   "devDependencies": {
     "chai": "^1.9.2",
     "istanbul": "^0.3.2",
     "mocha": "^2.0.0",
-    "mock-fs": "^2.3.1",
-    "rewire": "^2.1.0"
+    "mock-fs": "^2.3.1"
   }
 }
