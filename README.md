@@ -34,19 +34,16 @@ npm install --save-dev browser-libs
 
 ```js
 var blibs = require('browser-libs');
-blibs(function (err, libs) {
-  console.log(libs);
-  // [ '/example/project/node_modules/angular/angular.js' ]
-});
+var libs = blibs();
+console.log(libs);
+// [ '/example/project/node_modules/angular/angular.js' ]
 ```
 
 ## API
 
-### blibs([ opts, ] cb)
+### var libs = blibs([ opts ])
 
-Resolve all client-side libraries and call `cb(err, libs)`.
-
-`libs` will be an array of fully-qualified paths to libraries.
+Resolve all client-side libraries and return a sorted array of fully-qualified paths to `main` files.
 
 Options:
 
@@ -77,10 +74,9 @@ tools like Browserify), the resolved path will honor its configuration.
 
 ```js
 var blibs = require('browser-libs');
-blibs(function (err, libs) {
-  console.log(libs);
-  // [ '/example/project/node_modules/some-lib/dist/js/some-lib.js' ]
-});
+var libs = blibs();
+console.log(libs);
+// [ '/example/project/node_modules/some-lib/dist/js/some-lib.js' ]
 ```
 
 ### Bower dependency support
@@ -109,11 +105,10 @@ ensure files are returned in correct load order.
 
 ```js
 var blibs = require('browser-libs');
-blibs(function (err, libs) {
-  console.log(libs);
-  // [ '/example/project/node_modules/some-lib/index.js',
-  //   '/example/project/node_modules/depends-on-some-lib/index.js' ]
-});
+var libs = blibs();
+console.log(libs);
+// [ '/example/project/node_modules/some-lib/index.js',
+//   '/example/project/node_modules/depends-on-some-lib/index.js' ]
 ```
 
 _Note:_
@@ -146,10 +141,9 @@ browser field and [main-bower-files' overrides](https://github.com/ck86/main-bow
 
 ```js
 var blibs = require('browser-libs');
-blibs(function (err, libs) {
-  console.log(libs);
-  // [ '/example/project/node_modules/some-lib/overridden.js' ]
-});
+var libs = blibs();
+console.log(libs);
+// [ '/example/project/node_modules/some-lib/overridden.js' ]
 ```
 
 ### Excludes
@@ -175,10 +169,9 @@ specifying a `false` value.
 
 ```js
 var blibs = require('browser-libs');
-blibs(function (err, libs) {
-  console.log(libs);
-  // []
-});
+var libs = blibs();
+console.log(libs);
+// []
 ```
 
 ### Environment support
@@ -210,10 +203,9 @@ false value will exclude a library for only that environment.
 
 ```js
 var blibs = require('browser-libs');
-blibs({env: 'prod'}, function (err, libs) {
-  console.log(libs);
-  // [ '/example/project/node_modules/some-lib/some-lib.min.js' ]
-});
+var libs = blibs({env: 'prod'});
+console.log(libs);
+// [ '/example/project/node_modules/some-lib/some-lib.min.js' ]
 ```
 
 ### Manual dependency declarations
@@ -238,17 +230,14 @@ own in `bower.json`.
 
 ```js
 var blibs = require('browser-libs');
-blibs(function (err, libs) {
-  console.log(libs);
-  // [ '/example/project/node_modules/some-lib/index.js',
-  //   '/example/project/node_modules/depends-on-some-lib/index.js' ]
-});
+var libs = blibs();
+console.log(libs);
+// [ '/example/project/node_modules/some-lib/index.js',
+//   '/example/project/node_modules/depends-on-some-lib/index.js' ]
 ```
 
-_Note:_
-
-Dependencies declared in this fashion will _override_ any dependencies in the
-package's `bower.json`. They will not be merged together.
+_Note:_ Dependencies declared in this fashion will _override_ any dependencies in
+the package's `bower.json`. They will not be merged together.
 
 ## Limitations
 
