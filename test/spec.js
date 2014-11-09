@@ -4,7 +4,7 @@ var fs = require('fs');
 var path = require('path');
 var expect = require('chai').expect;
 
-describe('browser-deps', function () {
+describe('browser-libs', function () {
 	var fixture;
 
 	beforeEach(cleanFixture);

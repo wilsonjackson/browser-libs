@@ -2,18 +2,11 @@
 
 > Find and fine-tune your client-side library dependencies
 
-More and more client-side libraries are making their distributions available on
-npm, but npm hasn't quite got the client-side thing figured out yet. And many
-projects don't wish to go the CommonJS route and still consider Bower their
-primary distribution channel.
-
 This helper utility aims to provide some interoperability between a wholly
-node-and-npm-based build and these less-than-fully-nodified client-side
-libraries.
+node-and-npm-based build and less-than-fully-nodified client-side libraries.
 
-**tl;dr** If you get your browser dependencies from npm and are frustrated by the
-inability to do things like swap in minified files for production, maybe this
-will help.
+This is (hopefully) a stop-gap on the road to better native support for
+client-side libraries in npm.
 
 ## Install
 
@@ -52,12 +45,22 @@ Options:
 ### var styles = blibs.style([ opts ])
 
 Resolve all client-side libraries and return a sorted array of fully-qualified paths to `style` files.
+This method requires that libraries utilize the `style` field in their `package.json`, or you will
+have to manually specify the stylesheet in `browser-overrides`.
 
 Options:
 
 - `env`: Resolve overrides for a named environment. See details [below](#environment-support).
 
 ## Features
+
+### Recursive dependency resolution
+
+All dependencies for your libraries will be flattened in the returned array
+and sorted in the correct load order.
+
+_Note:_ If two libraries depend on different versions of the same library, the
+version mismatch will be ignored and one will be arbitrarily selected.
 
 ### [Browser field](https://gist.github.com/defunctzombie/4339901) support
 
@@ -247,10 +250,52 @@ console.log(libs);
 _Note:_ Dependencies declared in this fashion will _override_ any dependencies in
 the package's `bower.json`. They will not be merged together.
 
+## browser-overrides spec
+
+#### browser-overrides: `object`
+
+The `browser-overrides` key in `package.json` is an object with module names as
+keys. Its presence is optional.
+
+#### browser-overrides.<em>MODULE_NAME</em>: `object | string | false`
+
+If a string, overrides the path to the module's `main` file. If false, excludes
+the module (and its dependencies) from the returned array of libraries.
+
+#### browser-overrides.<em>MODULE_NAME</em>.main: `string | false`
+
+If a string, overrides the path to the module's `main` file. If false, excludes
+just the module's `main` file (without affecting `style`).
+
+#### browser-overrides.<em>MODULE_NAME</em>.style: `string | false`
+
+If a string, overrides the path to the module's `style` file. If false, excludes
+just the module's `style` file (without affecting `main`).
+
+#### browser-overrides.<em>MODULE_NAME</em>.env: `object`
+
+A map of environment names to environment-specific override configuration.
+
+If an environment is activated, and a key for that environment is present in
+this object, any configuration within it will be used.
+
+#### browser-overrides.<em>MODULE_NAME</em>.env.<em>ENV_NAME</em>: `object | string | false`
+
+If a string, overrides the path to the module's `main` file. If false, excludes
+the module (and its dependencies) from the returned array of libraries.
+
+#### browser-overrides.<em>MODULE_NAME</em>.env.<em>ENV_NAME</em>.main: `string | false`
+
+If a string, overrides the path to the module's `main` file. If false, excludes
+just the module's `main` file (without affecting `style`).
+
+#### browser-overrides.<em>MODULE_NAME</em>.env.<em>ENV_NAME</em>.style: `string | false`
+
+If a string, overrides the path to the module's `style` file. If false, excludes
+just the module's `style` file (without affecting `main`).
+
 ## Limitations
 
 This was built primarily to solve my own use case, so there are many things it
-won't do, like resolve dependencies of libraries recursively.
-
-If you think this (or any other feature) would be useful, please create an
-issue.
+won't do. Please create an issue for any desired functionality. Pull requests
+are welcome.
