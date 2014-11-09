@@ -49,6 +49,14 @@ Options:
 
 - `env`: Resolve overrides for a named environment. See details [below](#environment-support).
 
+### var styles = blibs.style([ opts ])
+
+Resolve all client-side libraries and return a sorted array of fully-qualified paths to `style` files.
+
+Options:
+
+- `env`: Resolve overrides for a named environment. See details [below](#environment-support).
+
 ## Features
 
 ### [Browser field](https://gist.github.com/defunctzombie/4339901) support

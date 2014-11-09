@@ -13,24 +13,30 @@ function blibs(options) {
 	var pkgFile = findPackageJson(path.dirname(module.parent.filename));
 	var pkg = require(pkgFile);
 	var override = pkg['browser-overrides'] || {};
-	var excluded = {};
 
-	// Find all excluded modules
-	Object.keys(override).forEach(function (id) {
+	function isGlobalExcluded(id) {
 		var o = override[id];
-		excluded[id] = env && o.env && o.env[env] === false ||                    // Environment-specific exclusion
-			(!env || !o.env || !o.env[env]) && (o === false || o.main === false); // Non-overridden global exclusion
-	});
+		return o === false || o && o.env && o.env[env] === false;
+	}
+
+	function isFileExcluded(id) {
+		var o = override[id] || {};
+		var prop = options.style ? 'style' : 'main';
+		if (o.env && o.env[env] && 'undefined' !== typeof o.env[env][prop]) {
+			return o.env[env][prop] === false;
+		}
+		return o[prop] === false;
+	}
 
 	var graph = Object.keys(pkg.dependencies)
 		.map(function (id) {
-			return readModule(id, {pkgFile: pkgFile});
+			return readModule(id);
 		})
 		.filter(Boolean)
 		.map(addOverrideDeps)
 		.reduce(addNodeDeps, [])
 		.map(addBowerDeps)
-		.map(findMain)
+		.map(options.style ? findStyle : findMain)
 		.reduce(buildDependencyGraph, {nodes: [], edges: []});
 	return toposort.array(graph.nodes, graph.edges).reverse();
 
@@ -49,22 +55,19 @@ function blibs(options) {
 	}
 
 	function readModule(id, parentMod) {
-		if (excluded[id]) {
+		if (isGlobalExcluded(id) || isFileExcluded(id)) {
 			return null;
 		}
 		if (cache[id]) {
 			return cache[id];
 		}
-		var main = bresolve.sync(id, {filename: parentMod.pkgFile});
-		var pkgFile = findPackageJson(path.dirname(main));
-		var pkg = require(pkgFile);
-		return (cache[id] = {
-			id: id,
-			pkgFile: pkgFile,
-			pkg: pkg,
-			parent: parentMod,
-			deps: []
-		});
+		if (!parentMod) {
+			parentMod = {pkgFile: pkgFile};
+		}
+		var mod = {id: id, parent: parentMod, deps: []};
+		mod.pkgFile = bresolve.sync(id + '/package.json', {filename: parentMod.pkgFile});
+		mod.pkg = require(mod.pkgFile);
+		return (cache[id] = mod);
 	}
 
 	function addOverrideDeps(mod) {
@@ -116,33 +119,65 @@ function blibs(options) {
 		return mod;
 	}
 
+	// resolve main file for module as mod.file, taking into account the module's browser field
 	function findMain(mod) {
 		var o = override[mod.id];
 		var main = 'object' === typeof o ? o.main : o;
 
 		// Apply environment-specific override
-		if (o && o.env && 'undefined' !== typeof o.env[env]) {
-			main = o.env[env];
+		if (o && o.env && o.env[env]) {
+			if ('string' === typeof o.env[env]) {
+				main = o.env[env];
+			}
+			else if ('string' === typeof o.env[env].main) {
+				main = o.env[env].main;
+			}
 		}
 
 		// If an override is set, resolve it from the root module. Otherwise, resolve from the parent of the dependency.
 		if (main) {
-			mod.main = bresolve.sync(main, {filename: pkgFile});
+			mod.file = bresolve.sync(main, {filename: pkgFile});
 		}
 		else {
-			mod.main = bresolve.sync(mod.id, {filename: mod.parent.pkgFile});
+			mod.file = bresolve.sync(mod.id, {filename: mod.parent.pkgFile});
+		}
+		return mod;
+	}
+
+	// resolve stylesheet for module as mod.file
+	function findStyle(mod) {
+		var o = override[mod.id];
+		var style = o && o.style;
+
+		// Apply environment-specific override
+		if (o && o.env && o.env[env] && o.env[env].style) {
+			style = o.env[env].style;
+		}
+
+		if (style) {
+			mod.file = bresolve.sync(style, {filename: pkgFile});
+		}
+		else if (mod.pkg.style) {
+			mod.file = bresolve.sync('./' + mod.pkg.style, {filename: mod.pkgFile});
 		}
 		return mod;
 	}
 
 	// Turn array of dependencies into nodes and edges for a dependency sort
 	function buildDependencyGraph(graph, mod) {
-		graph.nodes.push(mod.main);
-		mod.deps.forEach(function (dep) {
-			graph.edges.push([mod.main, dep.main]);
-		});
+		if (mod.file) {
+			graph.nodes.push(mod.file);
+			mod.deps.forEach(function (dep) {
+				graph.edges.push([mod.file, dep.file]);
+			});
+		}
 		return graph;
 	}
 }
 
 module.exports = blibs;
+module.exports.style = function (options) {
+	options = options || {};
+	options.style = true;
+	return blibs(options);
+};
