@@ -168,7 +168,9 @@ function blibs(options) {
 		if (mod.file) {
 			graph.nodes.push(mod.file);
 			mod.deps.forEach(function (dep) {
-				graph.edges.push([mod.file, dep.file]);
+				if (dep.file) {
+					graph.edges.push([mod.file, dep.file]);
+				}
 			});
 		}
 		return graph;

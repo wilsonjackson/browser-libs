@@ -1,0 +1,13 @@
+{
+	"name": "fixture",
+	"version": "1.0.0",
+	"dependencies": {
+		"simple": "1.0.0",
+		"nothing": "1.0.0"
+	},
+	"browser-overrides": {
+		"simple": {
+			"deps": ["nothing"]
+		}
+	}
+}

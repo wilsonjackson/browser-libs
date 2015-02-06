@@ -270,5 +270,13 @@ describe('browser-libs', function () {
 			expect(libraries[0]).to.equal(path.join(__dirname, 'fixture/node_modules/simple/style.css'));
 			expect(libraries[1]).to.equal(path.join(__dirname, 'fixture/node_modules/bower-deps/dist/style.css'));
 		});
+
+		// Addresses a bug wherein a module with a stylesheet that depends on another module without a stylesheet
+		// introduces an undefined stylesheet reference.
+		it('should mix explicitly defined stylesheets and overridden stylesheets', function () {
+			var libraries = runFixture('depends-on-override-style');
+			expect(libraries[-1]).to.be.undefined; // jshint ignore:line
+			expect(libraries[0]).to.equal(path.join(__dirname, 'fixture/node_modules/simple/style.css'));
+		});
 	});
 });
